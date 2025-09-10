@@ -4,6 +4,14 @@ Systemet ska skicka automatiserad notifikationer med samband med bokning eller a
 
 Vi ska även refaktorera vårt system för att designa om vårt boknings system genom att bryta ner en metod för att följa principen SRP och strategy mönster.
 
+# Intressenter
+
+Grupp A Utvecklingsteam (Iasmina & Alexander och Shams)
+
+Grupp B Slutanvändare (Iasmina)
+
+Lärare Produktägare
+
 # Kravspecifikation
 
 ## Funktionella krav
