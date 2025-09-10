@@ -55,33 +55,23 @@ IFK-006. Notifieringslogiken ska vara modulär och följa Template Method Patter
 
 IFK-007. Nya notistyper ska kunna läggas till utan att ändra befintliga klasser.
 
-# Prioriteringar & beroenden
+# Prioriteringar & beroenden – Tabell
 
-Krav-ID - Prioritet - Beroenden
+| **Krav-ID** | **Prioritet** | **Beroenden** |
+|-------------|---------------|---------------|
+| FK-001      | Must have     | FK-004        |
+| FK-002      | Must have     | FK-005        |
+| FK-003      | Must have     | FK-001        |
+| FK-004      | Must have     | -             |
+| FK-005      | Must have     | -             |
+| IFK-001     | Must have     | -             |
+| IFK-002     | Must have     | -             |
+| IFK-003     | Must have     | FK-001        |
+| IFK-004     | Must have     | FK-001        |
+| IFK-005     | Must have     | -             |
+| IFK-006     | Must have     | -             |
+| IFK-007     | Must have     | -             |
 
-FK-001 - Must have - FK-004
-
-FK-002 - Must have - FK-005
-
-FK-003 - Must have - FK-001
-
-FK-004 - Must have -
-
-FK-005 - Must have
-
-IFK-001 - Must have - 
-
-IFK-002 - Must have -
-
-IFK-003 - Must have - FK-001
-
-IFK-004 - Must have - FK-001
-
-IFK-005 - Must have -
-
-IFK-006 - Must have -
-
-IFK-007 - Must have -
 
 POSTMAN DOCUMENTATION:
 
