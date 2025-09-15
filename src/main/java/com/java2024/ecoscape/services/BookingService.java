@@ -7,6 +7,7 @@ import com.java2024.ecoscape.models.*;
 import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
+import com.java2024.ecoscape.validation.BookingValidationPipeline;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.java2024.ecoscape.models.Status.*;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 @Service
 public class BookingService {
@@ -35,14 +37,19 @@ public class BookingService {
     private final ListingRepository listingRepository;
     private final ListingAvailableDatesService listingAvailableDatesService;
     private final AuthenticationService authenticationService;
+    private final BookingValidationPipeline bookingValidationPipeline;
 
-    public BookingService(EmailService emailService, BookingRepository bookingRepository, UserRepository userRepository, ListingRepository listingRepository, ListingAvailableDatesService listingAvailableDatesService, AuthenticationService authenticationService) {
+    public BookingService(EmailService emailService, BookingRepository bookingRepository,
+                          UserRepository userRepository, ListingRepository listingRepository,
+                          ListingAvailableDatesService listingAvailableDatesService,
+                          AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline  ) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.listingRepository = listingRepository;
         this.listingAvailableDatesService = listingAvailableDatesService;
         this.authenticationService = authenticationService;
+        this.bookingValidationPipeline = bookingValidationPipeline;
     }
     // från DB (entity ) till DTO och api
     public BookingResponse convertBookingEntityToBookingResponse(Booking booking ) {
@@ -124,70 +131,15 @@ public class BookingService {
 
         if(authenticateUser.getId().equals(listing.getUser().getId())) {
             throw new IllegalArgumentException("You can't book your own listing!");
+
         }
 
-        // list to collect errors so they all appear at one
-        List<String>errors = new ArrayList<>();
-        //availability check
-        if (!listingAvailableDatesService.checkAvailability(listingId, bookingRequest.getStartDate(), bookingRequest.getEndDate())) {
-            errors.add("The listing is unavailable for the requested dates.");
+        List<String> errors = bookingValidationPipeline.validateAll(bookingRequest, listing);
+        if(!errors.isEmpty()) {
+            throw new BusinessValidationException(errors);
         }
 
-        // control can not have guests more than capacity in listing
-        if (bookingRequest.getGuests() > listing.getCapacity()) {
-            errors.add("The number of guests exceeds the capacity for this listing.");
-        }
-        // control can not be end date before start date
-        if (bookingRequest.getEndDate().isBefore(bookingRequest.getStartDate())) {
-            errors.add("Check-out date cannot be before check-in date.");
-        }
-        // Validate First Name
-        if (bookingRequest.getFirstName() == null || bookingRequest.getFirstName().trim().isEmpty()) {
-            errors.add("First name cannot be null or empty.");
-        } else if (!bookingRequest.getFirstName().matches("^[a-zA-Z ]+$")) {
-            errors.add("First name can only contain letters and spaces.");
-        } else if (bookingRequest.getFirstName().length() > 50) {
-            errors.add("First name cannot be longer than 50 characters.");
-        }
 
-        // Validate Last Name
-        if (bookingRequest.getLastName() == null || bookingRequest.getLastName().trim().isEmpty()) {
-            errors.add("Last name cannot be null or empty.");
-        } else if (!bookingRequest.getLastName().matches("^[a-zA-Z ]+$")) {
-            errors.add("Last name can only contain letters and spaces.");
-        } else if (bookingRequest.getLastName().length() > 50) {
-            errors.add("Last name cannot be longer than 50 characters.");
-        }
-
-        // Validate Phone Number
-        if (bookingRequest.getUsersContactPhoneNumber() == null || bookingRequest.getUsersContactPhoneNumber().trim().isEmpty()) {
-            errors.add("Phone number cannot be null.");
-        } else if (!bookingRequest.getUsersContactPhoneNumber().matches("^\\+\\d{1,3}\\d{9}$")) {
-            errors.add("That's not a valid phone number.");
-        }
-
-        // Validate Email
-        if (bookingRequest.getUsersContactEmail() == null || bookingRequest.getUsersContactEmail().trim().isEmpty()) {
-            errors.add("Email cannot be null.");
-        } else if (!bookingRequest.getUsersContactEmail().matches("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@[a-zA-Z0-9-]+(?:\\.[a-zA-Z]{2,})+$")) {
-            errors.add("That's not a valid email.");
-        } else if (bookingRequest.getUsersContactEmail().length() > 30) {
-            errors.add("Email cannot be longer than 30 characters.");
-        }
-
-        // Validate Guests
-        if (bookingRequest.getGuests() == null) {
-            errors.add("Guests cannot be null.");
-        } else if (bookingRequest.getGuests() < 1) {
-            errors.add("Guests must be at least 1.");
-        } else if (bookingRequest.getGuests() > 10) {
-            errors.add("Guests cannot be more than 10.");
-        }
-
-        // If there are errors, throw an exception with all the error messages
-        if (!errors.isEmpty()) {
-            throw new IllegalArgumentException(String.join("\n", errors));
-        }
 
         Booking booking = convertBookingRequestToBookingEntity(bookingRequest, listing);
         booking.setUser(authenticateUser);

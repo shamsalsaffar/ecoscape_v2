@@ -13,6 +13,8 @@ import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
+
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -56,5 +58,14 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    // Skapa en ValidationExcepation för fångar exception när det kastas och retunerar  strukturerat JSON-svar till frontend
+    @ExceptionHandler(BusinessValidationException.class)
+    public ResponseEntity<Object>handleBusinessValidation(BusinessValidationException ex) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "message", "Validation failed",
+                "errors", ex.getErrors()
+        ));
     }
 }
