@@ -23,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.java2024.ecoscape.models.Status.*;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 @Service
 public class BookingService {
@@ -135,7 +136,7 @@ public class BookingService {
 
         List<String> errors = bookingValidationPipeline.validateAll(bookingRequest, listing);
         if(!errors.isEmpty()) {
-            throw new com.java2024.ecoscape.validation.BusinessValidationException(errors);
+            throw new BusinessValidationException(errors);
         }
 
 

@@ -13,7 +13,7 @@ import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import com.java2024.ecoscape.validation.BusinessValidationException;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 
 @ControllerAdvice
