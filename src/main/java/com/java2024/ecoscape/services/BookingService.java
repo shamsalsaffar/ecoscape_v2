@@ -8,7 +8,7 @@ import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
 import com.java2024.ecoscape.validation.BookingValidationPipeline;
-import com.java2024.ecoscape.validation.BusinessValidationException;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.validation.CalendarOrchestrator;
 import com.java2024.ecoscape.validation.EffectiveBookingRequestFactory;
 import org.springframework.beans.factory.annotation.Value;
