@@ -46,7 +46,7 @@ public class CalendarOrchestratorImpl implements CalendarOrchestrator {
     public void tryRescheduleOrThrow (Listing listing, Booking booking, LocalDate newStart, LocalDate newEnd ) {
         boolean available = listingAvailableDatesService.checkAvailability(listing.getId(), newStart, newEnd);
         if (!available) {
-            throw new com.java2024.ecoscape.validation.BusinessValidationException(
+            throw new com.java2024.ecoscape.exceptions.BusinessValidationException(
                     java.util.List.of("The listing is unavaliable for the requested dates.")
             );
         }
