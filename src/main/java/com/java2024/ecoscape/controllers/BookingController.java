@@ -116,6 +116,7 @@ public class BookingController {
     }
 
     @PutMapping("/{bookingId}")
+    @PreAuthorize("hasAnyRole('HOST', 'ADMIN')")
     public ResponseEntity<BookingResponse> updateBooking(@PathVariable Long bookingId,
                                                          @RequestBody BookingRequest bookingRequest) {
 

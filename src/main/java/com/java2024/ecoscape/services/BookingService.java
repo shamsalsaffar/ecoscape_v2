@@ -8,6 +8,9 @@ import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
 import com.java2024.ecoscape.validation.BookingValidationPipeline;
+import com.java2024.ecoscape.validation.BusinessValidationException;
+import com.java2024.ecoscape.validation.CalendarOrchestrator;
+import com.java2024.ecoscape.validation.EffectiveBookingRequestFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,11 +40,15 @@ public class BookingService {
     private final ListingAvailableDatesService listingAvailableDatesService;
     private final AuthenticationService authenticationService;
     private final BookingValidationPipeline bookingValidationPipeline;
+    private final EffectiveBookingRequestFactory effectiveBookingRequestFactory;
+    private final CalendarOrchestrator calendarOrchestrator;
 
     public BookingService(EmailService emailService, BookingRepository bookingRepository,
                           UserRepository userRepository, ListingRepository listingRepository,
                           ListingAvailableDatesService listingAvailableDatesService,
-                          AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline  ) {
+                          AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline,
+                          EffectiveBookingRequestFactory effectiveBookingRequestFactory,
+                          CalendarOrchestrator calendarOrchestrator) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -49,6 +56,8 @@ public class BookingService {
         this.listingAvailableDatesService = listingAvailableDatesService;
         this.authenticationService = authenticationService;
         this.bookingValidationPipeline = bookingValidationPipeline;
+        this.effectiveBookingRequestFactory = effectiveBookingRequestFactory;
+        this.calendarOrchestrator = calendarOrchestrator;
     }
     // från DB (entity ) till DTO och api
     public BookingResponse convertBookingEntityToBookingResponse(Booking booking ) {
@@ -135,7 +144,7 @@ public class BookingService {
 
         List<String> errors = bookingValidationPipeline.validateAll(bookingRequest, listing);
         if(!errors.isEmpty()) {
-            throw new com.java2024.ecoscape.validation.BusinessValidationException(errors);
+            throw new BusinessValidationException(errors);
         }
 
 
@@ -300,89 +309,57 @@ public class BookingService {
     public BookingResponse updateBooking(BookingRequest bookingRequest, Long bookingId, Listing listing, User user) {
         User authenticateUser = authenticationService.authenticateMethods();
 
-        // Find Booking
-        Booking existingBooking = bookingRepository.findById(bookingId)
+        Booking existing = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NoSuchElementException("Booking not found"));
 
-        // Check if the authenticated user is an ADMIN or if the user is the host of the current listing
-        if (!(authenticateUser.getRoles().equals(Role.ADMIN) || authenticateUser.getId().equals(listing.getUser().getId()))) {
-            throw new UnauthorizedException("You dont have premission to update this booking.");
+        // 1) skapa ett effektive request av inkommande värden ( frontend) + med nuvarande bokning
+        BookingRequest eff = effectiveBookingRequestFactory.forUpdateAll(existing, bookingRequest);
+
+        // 2) validera
+        List<String> errors = bookingValidationPipeline.validateAll(eff, listing);
+        if (!errors.isEmpty()) throw new BusinessValidationException(errors);
+
+        // 3) Upptäck om datum faktiskt har ändrat
+        boolean datesChanged =
+                !existing.getStartDate().equals(eff.getStartDate())
+                || !existing.getEndDate().equals(eff.getEndDate());
+
+        // 4) om datum ändrats: kontrollera availabledatum och rechemlägg ( block/ merge)
+        if (datesChanged) {
+
+            calendarOrchestrator.tryRescheduleOrThrow(listing, existing, eff.getStartDate(), eff.getEndDate());
+
+            // Räkna price igen efter ändrning
+            existing.setTotalPrice(calculateTotalPrice(existing, listing));
         }
 
+        // 5) Kontrollera kontaktuppgifterna
+        existing.setFirstName(eff.getFirstName());
+        existing.setLastName(eff.getLastName());
+        existing.setUsersContactEmail(eff.getUsersContactEmail());
+        existing.setUsersContactPhoneNumber(eff.getUsersContactPhoneNumber());
+        existing.setGuests(eff.getGuests());
 
-        // list to collect errors so they all appeared at one
-        List<String>errors = new ArrayList<>();
-
-        // control can not have guests more than capacity in listing
-        if (bookingRequest.getGuests() > listing.getCapacity()) {
-            errors.add("The number of guests exceeds the capacity for this listing.");
+        // 6) uppdatera status om tillåts
+        if (eff.getStatus() != null && eff.getStatus() != existing.getStatus()) {
+            Status newStatus = eff.getStatus();
+            switch (newStatus) {
+                case CANCELLED_BY_HOST, CANCELLED_BY_USER -> {
+                    calendarOrchestrator.release(listing, existing);
+                }
+                default -> { /* övriga statusfall vid behöv */ }
+            }
+            existing.setStatus(newStatus);
         }
 
-        // control can not be end date before start date
-        if (bookingRequest.getEndDate().isBefore(bookingRequest.getStartDate())) {
-            errors.add("Check-out date cannot be before check-in date.");
-        }
+        Booking saved = bookingRepository.save(existing);
+        sendUpdateEmail(saved);
 
-        // if have two errors together, sen exception with what is wrong
-        if (!errors.isEmpty()) {
-            throw new IllegalArgumentException(String.join("\n", errors));
-
-        }
-
-
-
-        try {
-            // Försök att uppdatera första namnet
-            existingBooking.setFirstName(bookingRequest.getFirstName());
-            System.out.println("First name updated to: " + existingBooking.getFirstName());
-            bookingRepository.save(existingBooking);
-        } catch (Exception e) {
-            System.out.println("Error updating first name: " + e.getMessage());
-            throw e; // Rulla tillbaka om något går fel
-        }
-
-
-        if (bookingRequest.getLastName() != null) {
-            existingBooking.setLastName(bookingRequest.getLastName());
-        }
-
-        if (bookingRequest.getUsersContactPhoneNumber() != null) {
-            existingBooking.setUsersContactPhoneNumber(bookingRequest.getUsersContactPhoneNumber());
-        }
-
-        if (bookingRequest.getUsersContactEmail() != null) {
-            existingBooking.setUsersContactEmail(bookingRequest.getUsersContactEmail());
-        }
-
-        if (bookingRequest.getStartDate() != null) {
-            existingBooking.setStartDate(bookingRequest.getStartDate());
-        }
-
-        if (bookingRequest.getEndDate() != null) {
-            existingBooking.setEndDate(bookingRequest.getEndDate());
-        }
-
-        if (bookingRequest.getStatus() != null) {
-            existingBooking.setStatus(bookingRequest.getStatus());
-        }
-
-        if (bookingRequest.getGuests() != null) {
-            existingBooking.setGuests(bookingRequest.getGuests());
-        }
-
-        // save update booking
-        Booking updatedBooking = bookingRepository.save(existingBooking);
-
-        // Send email to confirm the update
-        sendUpdateEmail(updatedBooking);
-
-        // Add a response massage
-        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(updatedBooking);
-        bookingResponse.setMessage("The booking number " + updatedBooking.getId() + " has been updated. A confirmation email has been sent.");
-
+        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(saved);
+        bookingResponse.setMessage("The booking number " + saved.getId() + " has been updated. A confirmation email has been sent.");
         return bookingResponse;
-
     }
+
 
     public BookingResponse updateBookingContactInfo(Long bookingId, BookingRequest bookingRequest) {
         User authenticateUser = authenticationService.authenticateMethods();

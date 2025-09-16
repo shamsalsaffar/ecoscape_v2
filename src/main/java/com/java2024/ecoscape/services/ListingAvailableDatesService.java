@@ -145,7 +145,7 @@ public class ListingAvailableDatesService {
 
         listingRepository.findById(listingId).orElseThrow(() -> new NoSuchElementException("Listing not found"));
         boolean isAvailable = listingAvailableDatesRepository.existsByListingIdAndOverlappingDates(
-                listingId, endDate, startDate);
+                listingId,startDate, endDate);
         return isAvailable;
     }
 
