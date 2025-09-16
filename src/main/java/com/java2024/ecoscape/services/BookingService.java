@@ -363,49 +363,37 @@ public class BookingService {
 
     public BookingResponse updateBookingContactInfo(Long bookingId, BookingRequest bookingRequest) {
         User authenticateUser = authenticationService.authenticateMethods();
-
-
-        // الحصول على الحجز من قاعدة البيانات
         // Find the booking
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking existing = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NoSuchElementException("Booking not found"));
 
-        if (!authenticateUser.getId().equals(booking.getUser().getId())) {
+        if (!authenticateUser.getId().equals(existing.getUser().getId())) {
             throw new UnauthorizedException("You don't have permission to update this booking.");
         }
+        BookingRequest eff = effectiveBookingRequestFactory.forUpdateContact(existing, bookingRequest);
 
-        // list to collect errors so they all appeared at one
-        List<String>errors = new ArrayList<>();
+        List<String> errors = bookingValidationPipeline.validateAll(eff, existing.getListing());
+        if (!errors.isEmpty()) {
+            throw new BusinessValidationException(errors);
+        }
 
 
-        // تحديث الحقول فقط إذا كانت غير فارغة
-        // update fields
-        if (bookingRequest.getFirstName() != null) {
-            booking.setFirstName(bookingRequest.getFirstName());
-        }
-        if (bookingRequest.getLastName() != null) {
-            booking.setLastName(bookingRequest.getLastName());
-        }
-        if (bookingRequest.getUsersContactEmail() != null) {
-            booking.setUsersContactEmail(bookingRequest.getUsersContactEmail());
-        }
-        if (bookingRequest.getUsersContactPhoneNumber() != null) {
-            booking.setUsersContactPhoneNumber(bookingRequest.getUsersContactPhoneNumber());
-        }
-        // إرسال تأكيد الإلغاء بالبريد الإلكتروني
+        existing.setFirstName(eff.getFirstName());
+        existing.setLastName(eff.getLastName());
+        existing.setUsersContactEmail(eff.getUsersContactEmail());
+        existing.setUsersContactPhoneNumber(eff.getUsersContactPhoneNumber());
+
+        Booking booking = bookingRepository.save(existing);
+
         // Send email to confirm the update
         sendUpdateEmail(booking);
-
-        // تحويل الكيان إلى استجابة
         // convert to response
         BookingResponse bookingResponse = convertBookingEntityToBookingResponse(booking);
-
-
-        // إضافة الرسالة إلى الاستجابة
+        // Addera SMS till response
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been update. A update email has been sent.");
-
         return bookingResponse;
     }
+
     private void sendUpdateEmail(Booking booking) {
         String to = booking.getUsersContactEmail();
         String subject = "Your booking details have been updated";
