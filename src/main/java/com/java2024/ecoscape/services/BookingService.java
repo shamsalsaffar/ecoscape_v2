@@ -26,6 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.java2024.ecoscape.models.Status.*;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 @Service
 public class BookingService {
