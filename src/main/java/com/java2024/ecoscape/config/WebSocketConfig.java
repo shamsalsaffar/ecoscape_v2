@@ -22,9 +22,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         //där ska notiser skickas från server till klient
-        registry.enableSimpleBroker("/topic");
+        registry.enableSimpleBroker("/topic", "/queue");
         //där ska notiser skickas från klient till server, tror inte att det (dock troligen inte behövs för push app notifikationer
         registry.setApplicationDestinationPrefixes("/app");
+        //behövs för personliga notiser
+        registry.setUserDestinationPrefix("/user");
     }
 }
 
