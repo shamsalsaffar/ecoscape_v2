@@ -15,13 +15,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.java2024.ecoscape.mappers.BookingMapper;
 
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.java2024.ecoscape.models.Status.*;
-import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 @Service
 public class BookingService {
@@ -36,6 +36,7 @@ public class BookingService {
     private final EffectiveBookingRequestFactory effectiveBookingRequestFactory;
     private final CalendarOrchestrator calendarOrchestrator;
     private final PriceService priceService;
+    private  final BookingMapper bookingMapper;
 
     public BookingService(EmailService emailService, BookingRepository bookingRepository,
                           UserRepository userRepository, ListingRepository listingRepository,
@@ -43,7 +44,8 @@ public class BookingService {
                           AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline,
                           EffectiveBookingRequestFactory effectiveBookingRequestFactory,
                           CalendarOrchestrator calendarOrchestrator,
-                          PriceService priceService) {
+                          PriceService priceService,
+                          BookingMapper bookingMapper) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -54,71 +56,9 @@ public class BookingService {
         this.effectiveBookingRequestFactory = effectiveBookingRequestFactory;
         this.calendarOrchestrator = calendarOrchestrator;
         this.priceService = priceService;
+        this.bookingMapper = bookingMapper;
     }
-    // från DB (entity ) till DTO och api
-    public BookingResponse convertBookingEntityToBookingResponse(Booking booking ) {
-        BookingResponse bookingResponse = new BookingResponse();
-        bookingResponse.setBookingId(booking.getId());
-        bookingResponse.setUserId(booking.getUser().getId());
-        bookingResponse.setListingId(booking.getListing().getId());
-        bookingResponse.setListingname(booking.getListing().getName());
-        bookingResponse.setFirstName(booking.getFirstName());
-        bookingResponse.setLastName(booking.getLastName());
-        bookingResponse.setUsersContactPhoneNumber(booking.getUsersContactPhoneNumber());
-        bookingResponse.setUsersContactEmail(booking.getUsersContactEmail());
-        bookingResponse.setStartDate(booking.getStartDate());
-        bookingResponse.setEndDate(booking.getEndDate());
-        bookingResponse.setStatus(booking.getStatus());
-        bookingResponse.setGuests(booking.getGuests());
-        bookingResponse.setPricePerNight(booking.getListing().getPricePerNight());
-        bookingResponse.setCleaningFee(booking.getListing().getCleaningFee());
 
-
-        PriceService.PriceBreakdown pb = priceService.calculate(
-                booking.getListing(),
-                booking.getStartDate(),
-                booking.getEndDate()
-        );
-
-        bookingResponse.setWebsiteFee(pb.getServiceFeeAmount());
-
-        bookingResponse.setTotalPrice(pb.getTotal());
-
-
-        return bookingResponse;
-    }
-    //ta emot data fron frontend api och spara i DB
-    public Booking convertBookingRequestToBookingEntity(BookingRequest bookingRequest, Listing listing) {
-        Booking booking = new Booking();
-        booking.setFirstName(bookingRequest.getFirstName());
-        booking.setLastName(bookingRequest.getLastName());
-        booking.setUsersContactEmail(bookingRequest.getUsersContactEmail());
-        booking.setUsersContactPhoneNumber(bookingRequest.getUsersContactPhoneNumber());
-        booking.setStartDate(bookingRequest.getStartDate());
-        booking.setEndDate(bookingRequest.getEndDate());
-        booking.setGuests(bookingRequest.getGuests());
-
-        // ensure the listing do not empty
-        if (listing == null) {
-            throw new IllegalArgumentException("Listing cannot be null when creating a booking.");
-        }
-
-        // تعيين القائمة للحجز
-        booking.setListing(listing);
-
-        // calculate Total price
-       // booking.setTotalPrice(calculateTotalPrice(booking, listing));
-        PriceService.PriceBreakdown pb = priceService.calculate(
-                booking.getListing(),
-                booking.getStartDate(),
-                booking.getEndDate()
-        );
-        booking.setTotalPrice(pb.getTotal());
-
-
-
-        return booking;
-    }
 
     @Transactional
     public BookingResponse createBooking(BookingRequest bookingRequest, Long listingId) {
@@ -138,9 +78,7 @@ public class BookingService {
             throw new BusinessValidationException(errors);
         }
 
-
-
-        Booking booking = convertBookingRequestToBookingEntity(bookingRequest, listing);
+        Booking booking = bookingMapper.toEntity(bookingRequest, listing, authenticateUser, priceService);
         booking.setUser(authenticateUser);
         booking.setListing(listing);
         booking.setStatus(CONFIRMED);
@@ -153,7 +91,7 @@ public class BookingService {
         Booking savedBooking = bookingRepository.save(booking);
 
         // تحويل الكيان إلى استجابة
-        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(booking);
+        BookingResponse bookingResponse = bookingMapper.toResponse(savedBooking, priceService);
 
         // إضافة الرسالة إلى الاستجابة
         bookingResponse.setMessage("The booking number " + booking.getId() + "\n has been confirmed. A confirmation email has been sent.");
@@ -196,7 +134,7 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
         // تحويل Booking إلى BookingResponse
 
-        return convertBookingEntityToBookingResponse(booking);
+        return bookingMapper.toResponse(booking, priceService);
     }
 
     public List<BookingResponse> getBookingByUser() {
@@ -204,7 +142,7 @@ public class BookingService {
 
         List<Booking> bookings = bookingRepository.findByUser(authenticateUser);
         return bookings.stream()
-                .map(this::convertBookingEntityToBookingResponse)
+                .map(b -> bookingMapper.toResponse(b, priceService))
                 .collect(Collectors.toList());
     }
 
@@ -234,7 +172,7 @@ public class BookingService {
         // إرسال تأكيد الإلغاء بالبريد الإلكتروني
         sendCancellationEmail(booking);
         // تحويل الكيان إلى استجابة
-        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(booking);
+        BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
 
         // إضافة الرسالة إلى الاستجابة
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been cancelled. A confirmation email has been sent.");
@@ -260,7 +198,7 @@ public class BookingService {
         sendCancellationEmail(booking);
 
         // تحويل الكيان إلى استجابة
-        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(booking);
+        BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
 
         // إضافة الرسالة إلى الاستجابة
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been cancelled. A confirmation email has been sent.");
@@ -352,7 +290,7 @@ public class BookingService {
         Booking saved = bookingRepository.save(existing);
         sendUpdateEmail(saved);
 
-        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(saved);
+        BookingResponse bookingResponse = bookingMapper.toResponse(saved, priceService);
         bookingResponse.setMessage("The booking number " + saved.getId() + " has been updated. A confirmation email has been sent.");
         return bookingResponse;
     }
@@ -385,7 +323,7 @@ public class BookingService {
         // Send email to confirm the update
         sendUpdateEmail(booking);
         // convert to response
-        BookingResponse bookingResponse = convertBookingEntityToBookingResponse(booking);
+        BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
         // Addera SMS till response
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been update. A update email has been sent.");
         return bookingResponse;
@@ -415,11 +353,6 @@ public class BookingService {
         // send mail by java mail
         emailService.sendEmail(to, subject, text.toString());
     }
-
-
-
-
-
 
 
     public ResponseEntity<String> deleteBookingById(Long bookingId) {
