@@ -6,6 +6,8 @@ import com.java2024.ecoscape.services.ListingAvailableDatesService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
+
 import java.time.LocalDate;
 
 @Component
@@ -41,12 +43,12 @@ public class CalendarOrchestratorImpl implements CalendarOrchestrator {
     }
 
 
-    @Override
+   @Override
     @Transactional
     public void tryRescheduleOrThrow (Listing listing, Booking booking, LocalDate newStart, LocalDate newEnd ) {
         boolean available = listingAvailableDatesService.checkAvailability(listing.getId(), newStart, newEnd);
         if (!available) {
-            throw new com.java2024.ecoscape.exceptions.BusinessValidationException(
+            throw new BusinessValidationException(
                     java.util.List.of("The listing is unavaliable for the requested dates.")
             );
         }
