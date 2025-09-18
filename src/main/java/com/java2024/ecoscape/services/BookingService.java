@@ -11,16 +11,11 @@ import com.java2024.ecoscape.validation.BookingValidationPipeline;
 import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.validation.CalendarOrchestrator;
 import com.java2024.ecoscape.validation.EffectiveBookingRequestFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -32,9 +27,6 @@ import com.java2024.ecoscape.exceptions.BusinessValidationException;
 public class BookingService {
 
     private final EmailService emailService;
-    @Value("${service.fee:0.1}")
-    private Double serviceFee;
-
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ListingRepository listingRepository;
@@ -43,13 +35,15 @@ public class BookingService {
     private final BookingValidationPipeline bookingValidationPipeline;
     private final EffectiveBookingRequestFactory effectiveBookingRequestFactory;
     private final CalendarOrchestrator calendarOrchestrator;
+    private final PriceService priceService;
 
     public BookingService(EmailService emailService, BookingRepository bookingRepository,
                           UserRepository userRepository, ListingRepository listingRepository,
                           ListingAvailableDatesService listingAvailableDatesService,
                           AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline,
                           EffectiveBookingRequestFactory effectiveBookingRequestFactory,
-                          CalendarOrchestrator calendarOrchestrator) {
+                          CalendarOrchestrator calendarOrchestrator,
+                          PriceService priceService) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -59,6 +53,7 @@ public class BookingService {
         this.bookingValidationPipeline = bookingValidationPipeline;
         this.effectiveBookingRequestFactory = effectiveBookingRequestFactory;
         this.calendarOrchestrator = calendarOrchestrator;
+        this.priceService = priceService;
     }
     // från DB (entity ) till DTO och api
     public BookingResponse convertBookingEntityToBookingResponse(Booking booking ) {
@@ -77,14 +72,17 @@ public class BookingService {
         bookingResponse.setGuests(booking.getGuests());
         bookingResponse.setPricePerNight(booking.getListing().getPricePerNight());
         bookingResponse.setCleaningFee(booking.getListing().getCleaningFee());
-        long nights = ChronoUnit.DAYS.between(booking.getStartDate(), booking.getEndDate());
-        BigDecimal serviceFeeInKr = booking.getListing().getPricePerNight()
-                .multiply(BigDecimal.valueOf(nights))  // عدد الليالي
-                .multiply(BigDecimal.valueOf(serviceFee)) // الخدمة
-                .setScale(2, RoundingMode.HALF_UP);
-        bookingResponse.setWebsiteFee(serviceFeeInKr);
 
-        bookingResponse.setTotalPrice(booking.getTotalPrice());
+
+        PriceService.PriceBreakdown pb = priceService.calculate(
+                booking.getListing(),
+                booking.getStartDate(),
+                booking.getEndDate()
+        );
+
+        bookingResponse.setWebsiteFee(pb.getServiceFeeAmount());
+
+        bookingResponse.setTotalPrice(pb.getTotal());
 
 
         return bookingResponse;
@@ -109,25 +107,17 @@ public class BookingService {
         booking.setListing(listing);
 
         // calculate Total price
-        booking.setTotalPrice(calculateTotalPrice(booking, listing));
+       // booking.setTotalPrice(calculateTotalPrice(booking, listing));
+        PriceService.PriceBreakdown pb = priceService.calculate(
+                booking.getListing(),
+                booking.getStartDate(),
+                booking.getEndDate()
+        );
+        booking.setTotalPrice(pb.getTotal());
 
 
 
         return booking;
-    }
-    private BigDecimal calculateTotalPrice(Booking booking, Listing listing) {
-        long nights = ChronoUnit.DAYS.between(booking.getStartDate(), booking.getEndDate());
-        BigDecimal nightsBD = BigDecimal.valueOf(nights);
-
-        BigDecimal pricePerNight = listing.getPricePerNight() != null ? listing.getPricePerNight() : BigDecimal.ZERO;
-        BigDecimal cleaningFee = listing.getCleaningFee() != null ? listing.getCleaningFee() : BigDecimal.ZERO;
-
-        BigDecimal serviceFeeBD = pricePerNight.multiply(nightsBD).multiply(BigDecimal.valueOf(serviceFee));
-
-        return pricePerNight.multiply(nightsBD)
-                .add(cleaningFee)
-                .add(serviceFeeBD)
-                .setScale(2, RoundingMode.HALF_UP);
     }
 
     @Transactional
@@ -331,7 +321,13 @@ public class BookingService {
             calendarOrchestrator.tryRescheduleOrThrow(listing, existing, eff.getStartDate(), eff.getEndDate());
 
             // Räkna price igen efter ändrning
-            existing.setTotalPrice(calculateTotalPrice(existing, listing));
+            PriceService.PriceBreakdown pb = priceService.calculate(
+                    listing,
+                    existing.getStartDate(),
+                    existing.getEndDate()
+            );
+            existing.setTotalPrice(pb.getTotal());
+
         }
 
         // 5) Kontrollera kontaktuppgifterna
