@@ -1,4 +1,4 @@
-package com.java2024.ecoscape.config;
+package com.java2024.ecoscape.websockets.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;

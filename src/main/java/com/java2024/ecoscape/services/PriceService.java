@@ -1,12 +1,10 @@
 package com.java2024.ecoscape.services;
 
-import com.java2024.ecoscape.models.Booking;
 import com.java2024.ecoscape.models.Listing;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cglib.core.Local;
-import org.springframework.stereotype.Service;
-import lombok.Data;
 import lombok.Builder;
+import lombok.Data;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

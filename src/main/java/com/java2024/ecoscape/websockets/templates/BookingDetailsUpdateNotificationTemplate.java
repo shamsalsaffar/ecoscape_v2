@@ -1,7 +1,6 @@
-package com.java2024.ecoscape.services;
+package com.java2024.ecoscape.websockets.templates;
 
 import com.java2024.ecoscape.models.Booking;
-import com.java2024.ecoscape.models.User;
 
 public class BookingDetailsUpdateNotificationTemplate extends NotificationTemplate {
 

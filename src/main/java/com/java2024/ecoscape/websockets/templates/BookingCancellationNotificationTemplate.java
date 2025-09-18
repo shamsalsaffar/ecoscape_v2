@@ -1,8 +1,8 @@
-package com.java2024.ecoscape.services;
+package com.java2024.ecoscape.websockets.templates;
 
 import com.java2024.ecoscape.models.Booking;
 
-public class BookingCancellationNotificationTemplate extends NotificationTemplate{
+public class BookingCancellationNotificationTemplate extends NotificationTemplate {
 
     @Override
     protected String buildHeader() {
