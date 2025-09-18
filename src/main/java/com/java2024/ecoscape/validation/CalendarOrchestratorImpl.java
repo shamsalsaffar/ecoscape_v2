@@ -43,7 +43,7 @@ public class CalendarOrchestratorImpl implements CalendarOrchestrator {
     }
 
 
-    @Override
+   @Override
     @Transactional
     public void tryRescheduleOrThrow (Listing listing, Booking booking, LocalDate newStart, LocalDate newEnd ) {
         boolean available = listingAvailableDatesService.checkAvailability(listing.getId(), newStart, newEnd);
