@@ -2,13 +2,16 @@ package com.java2024.ecoscape.services;
 
 import com.java2024.ecoscape.dto.BookingRequest;
 import com.java2024.ecoscape.dto.BookingResponse;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.exceptions.UnauthorizedException;
-import com.java2024.ecoscape.models.*;
+import com.java2024.ecoscape.models.Booking;
+import com.java2024.ecoscape.models.Listing;
+import com.java2024.ecoscape.models.Status;
+import com.java2024.ecoscape.models.User;
 import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
 import com.java2024.ecoscape.validation.BookingValidationPipeline;
-import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.validation.CalendarOrchestrator;
 import com.java2024.ecoscape.validation.EffectiveBookingRequestFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,13 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.java2024.ecoscape.models.Status.*;
-import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 @Service
 public class BookingService {
@@ -147,7 +148,6 @@ public class BookingService {
         if(!errors.isEmpty()) {
             throw new BusinessValidationException(errors);
         }
-
 
 
         Booking booking = convertBookingRequestToBookingEntity(bookingRequest, listing);
