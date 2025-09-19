@@ -2,15 +2,16 @@ package com.java2024.ecoscape.services;
 
 import com.java2024.ecoscape.dto.BookingRequest;
 import com.java2024.ecoscape.dto.BookingResponse;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.exceptions.UnauthorizedException;
 import com.java2024.ecoscape.models.*;
 import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
 import com.java2024.ecoscape.validation.BookingValidationPipeline;
-import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.validation.CalendarOrchestrator;
 import com.java2024.ecoscape.validation.EffectiveBookingRequestFactory;
+import com.java2024.ecoscape.websockets.service.PushNotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,6 @@ import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.java2024.ecoscape.models.Status.*;
-import com.java2024.ecoscape.exceptions.BusinessValidationException;
 
 @Service
 public class BookingService {
@@ -36,6 +36,7 @@ public class BookingService {
     private final EffectiveBookingRequestFactory effectiveBookingRequestFactory;
     private final CalendarOrchestrator calendarOrchestrator;
     private final PriceService priceService;
+    private final PushNotificationService pushNotificationService;
 
     public BookingService(EmailService emailService, BookingRepository bookingRepository,
                           UserRepository userRepository, ListingRepository listingRepository,
@@ -43,7 +44,7 @@ public class BookingService {
                           AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline,
                           EffectiveBookingRequestFactory effectiveBookingRequestFactory,
                           CalendarOrchestrator calendarOrchestrator,
-                          PriceService priceService) {
+                          PriceService priceService, PushNotificationService pushNotificationService) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -54,6 +55,7 @@ public class BookingService {
         this.effectiveBookingRequestFactory = effectiveBookingRequestFactory;
         this.calendarOrchestrator = calendarOrchestrator;
         this.priceService = priceService;
+        this.pushNotificationService = pushNotificationService;
     }
     // från DB (entity ) till DTO och api
     public BookingResponse convertBookingEntityToBookingResponse(Booking booking ) {
@@ -152,6 +154,7 @@ public class BookingService {
         // save booking to db
         Booking savedBooking = bookingRepository.save(booking);
 
+        pushNotificationService.notify(NotificationType.BOOKING_CREATION, savedBooking);
         // تحويل الكيان إلى استجابة
         BookingResponse bookingResponse = convertBookingEntityToBookingResponse(booking);
 
@@ -231,6 +234,9 @@ public class BookingService {
         listingAvailableDatesService.restoreAvailableDateRange(booking.getListing().getId(), booking.getStartDate(), booking.getEndDate());
         listingAvailableDatesService.mergeListingAvailableDates(booking.getListing().getId());
         bookingRepository.save(booking);
+
+        pushNotificationService.notify(NotificationType.BOOKING_CANCELLATION, booking);
+
         // إرسال تأكيد الإلغاء بالبريد الإلكتروني
         sendCancellationEmail(booking);
         // تحويل الكيان إلى استجابة
@@ -256,6 +262,9 @@ public class BookingService {
         listingAvailableDatesService.restoreAvailableDateRange(booking.getListing().getId(), booking.getStartDate(), booking.getEndDate());
         listingAvailableDatesService.mergeListingAvailableDates(booking.getListing().getId());
         bookingRepository.save(booking);
+
+        pushNotificationService.notify(NotificationType.BOOKING_CANCELLATION, booking);
+
         // إرسال تأكيد الإلغاء بالبريد الإلكتروني
         sendCancellationEmail(booking);
 
@@ -381,6 +390,8 @@ public class BookingService {
         existing.setUsersContactPhoneNumber(eff.getUsersContactPhoneNumber());
 
         Booking booking = bookingRepository.save(existing);
+
+        pushNotificationService.notify(NotificationType.BOOKING_DETAILS_UPDATE, booking);
 
         // Send email to confirm the update
         sendUpdateEmail(booking);

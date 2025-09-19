@@ -6,16 +6,19 @@ public class BookingCancellationNotificationTemplate extends NotificationTemplat
 
     @Override
     protected String buildHeader() {
-        return "Booking Cancelled";
+        setHeader("Booking Cancelled");
+        return getHeader();
     }
 
     @Override
     protected String buildBody(Booking booking) {
-        return "The booking with ID" + booking.getId() + "has been cancelled.";
+        setBody("The booking with ID" + booking.getId() + "has been cancelled.");
+        return getBody();
     }
 
     @Override
     protected String buildFooter() {
-        return "Please contact support if you have any questions.";
+       setFooter("Please contact support if you have any questions.");
+       return getFooter();
     }
 }

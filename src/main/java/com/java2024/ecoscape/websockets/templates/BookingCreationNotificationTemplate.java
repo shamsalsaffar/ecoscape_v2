@@ -6,17 +6,20 @@ public class BookingCreationNotificationTemplate extends NotificationTemplate {
 
     @Override
     protected String buildHeader() {
-        return "Booking Confirmed!";
+        setHeader("Booking Confirmed!");
+        return getHeader();
     }
 
     @Override
     protected String buildBody(Booking booking) {
-            return "The booking with ID " + booking.getId() + " has been confirmed.";
+            setBody("The booking with ID " + booking.getId() + " has been confirmed.");
+            return getBody();
         }
 
 
     @Override
     protected String buildFooter() {
-        return "Thank you for using Ecoscape!";
+        setFooter("Thank you for using Ecoscape!");
+        return getFooter();
     }
 }

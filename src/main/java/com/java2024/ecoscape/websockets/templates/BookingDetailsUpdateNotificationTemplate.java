@@ -4,19 +4,21 @@ import com.java2024.ecoscape.models.Booking;
 
 public class BookingDetailsUpdateNotificationTemplate extends NotificationTemplate {
 
-
     @Override
     protected String buildHeader() {
-        return "Booking Details Updated!";
+        setHeader("Booking Details Updated!");
+        return getHeader();
     }
 
     @Override
     protected String buildBody(Booking booking) {
-            return "Booking details for the booking with ID" + booking.getId() + "has been updated.";
+        setBody("Booking details for the booking with ID" + booking.getId() + "has been updated.");
+        return getBody();
     }
 
     @Override
     protected String buildFooter() {
-        return "Please review the changes.";
+        setFooter("Please review the changes.");
+        return getFooter();
     }
 }
