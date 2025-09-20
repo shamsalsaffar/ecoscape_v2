@@ -72,4 +72,18 @@ public interface BookingMapper {
         );
         entity.setTotalPrice(pb.getTotal());
     }
+
+
+    /* ====== Entity -> Request(get all ) ====== */
+    @Mappings({
+            @Mapping(target = "userId", source = "user.id"),
+            @Mapping(target = "listingId", source = "listing.id"),
+
+    })
+
+    BookingRequest toRequest ( Booking booking);
+
+
+
+
 }

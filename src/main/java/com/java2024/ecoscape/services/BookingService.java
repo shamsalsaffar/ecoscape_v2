@@ -121,9 +121,9 @@ public class BookingService {
     public List<BookingRequest> getAllbookings() {
         User authenticateUser = authenticationService.authenticateMethods();
 
-        List<Booking> bookings = bookingRepository.findAll(); // Fetch all bookings from the repository
-        return bookings.stream()
-                .map(this::convertBookingEntityToBookingRequest) // Convert each Booking entity to BookingRequest DTO
+        return bookingRepository.findAll()
+                .stream()
+                .map(bookingMapper ::toRequest)
                 .collect(Collectors.toList());
     }
 
@@ -132,8 +132,6 @@ public class BookingService {
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
-        // تحويل Booking إلى BookingResponse
-
         return bookingMapper.toResponse(booking, priceService);
     }
 
@@ -160,7 +158,6 @@ public class BookingService {
             throw new IllegalArgumentException("You can only cancel your own bookings!");
         }
 
-        // التحقق مما إذا كان الحجز قد تم إلغاؤه مسبقًا
         if (booking.getStatus() == Status.CANCELLED_BY_USER || booking.getStatus() == Status.CANCELLED_BY_HOST) {
             throw new RuntimeException("This booking has already been cancelled.");
         }
@@ -217,22 +214,6 @@ public class BookingService {
         // Sending the email using the EmailService
         emailService.sendEmail(to, subject, text);
     }
-
-    // DB (entity )till request DTO
-    private BookingRequest convertBookingEntityToBookingRequest(Booking booking) {
-        BookingRequest bookingRequest = new BookingRequest();
-
-        bookingRequest.setFirstName(booking.getFirstName());
-        bookingRequest.setLastName(booking.getLastName());
-
-        bookingRequest.setUsersContactEmail(booking.getUsersContactEmail());
-        bookingRequest.setUsersContactPhoneNumber(booking.getUsersContactPhoneNumber());
-        bookingRequest.setStartDate(booking.getStartDate());
-        bookingRequest.setEndDate(booking.getEndDate());
-        bookingRequest.setGuests(booking.getGuests());
-        return bookingRequest;
-    }
-
 
     @Transactional
     public BookingResponse updateBooking(BookingRequest bookingRequest, Long bookingId, Listing listing, User user) {
