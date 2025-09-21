@@ -46,8 +46,7 @@ public class BookingService {
                           AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline,
                           EffectiveBookingRequestFactory effectiveBookingRequestFactory,
                           CalendarOrchestrator calendarOrchestrator,
-                          PriceService priceService, PushNotificationService pushNotificationService) {
-                          PriceService priceService,
+                          PriceService priceService, PushNotificationService pushNotificationService,
                           BookingMapper bookingMapper) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
