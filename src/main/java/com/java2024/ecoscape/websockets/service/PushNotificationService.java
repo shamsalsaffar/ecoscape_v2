@@ -1,5 +1,6 @@
 package com.java2024.ecoscape.websockets.service;
 
+import com.java2024.ecoscape.dto.NotificationDTO;
 import com.java2024.ecoscape.repositories.NotificationRepository;
 import com.java2024.ecoscape.services.NotificationService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,13 +20,13 @@ public class PushNotificationService extends NotificationService {
 
 
     @Override
-    protected void sendToUser(String username, String message) {
-        messagingTemplate.convertAndSendToUser(username, "/queue/notifications", message);
+    protected void sendToUser(String username, NotificationDTO notificationDTO) {
+        messagingTemplate.convertAndSendToUser(username, "/queue/notifications", notificationDTO);
     }
 
     @Override
-    protected void broadcast(String message) {
-        messagingTemplate.convertAndSend("/topic/notifications", message);
+    protected void broadcast(NotificationDTO notificationDTO) {
+        messagingTemplate.convertAndSend("/topic/notifications", notificationDTO);
     }
 }
 

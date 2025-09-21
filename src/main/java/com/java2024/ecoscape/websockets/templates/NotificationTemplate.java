@@ -1,5 +1,6 @@
 package com.java2024.ecoscape.websockets.templates;
 
+import com.java2024.ecoscape.dto.NotificationDTO;
 import com.java2024.ecoscape.models.Booking;
 
 public abstract class NotificationTemplate {
@@ -17,10 +18,12 @@ public abstract class NotificationTemplate {
 
     protected abstract String buildFooter();
 
-    public String buildMessage(Booking booking) {
-        return buildHeader() + "\n"
-                + buildBody(booking) + "\n"
-                + buildFooter();
+    public NotificationDTO buildNotification(Booking booking) {
+        NotificationDTO notificationDTO = new NotificationDTO();
+        notificationDTO.setBookingId(booking.getId());
+        notificationDTO.setTitle(buildHeader());
+        notificationDTO.setMessage(buildBody(booking) + "\n" + buildFooter());
+        return notificationDTO;
     }
 
     public String getHeader() {
