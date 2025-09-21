@@ -24,7 +24,7 @@ public abstract class NotificationService {
     protected abstract void sendToUser(String username, NotificationDTO notificationDTO);
     protected abstract void broadcast(NotificationDTO notificationDTO);
 
-    private void saveNotification(NotificationType notificationType, Booking booking, List<User> users,
+    private Notification saveNotification(NotificationType notificationType, Booking booking, List<User> users,
                                   NotificationDTO notificationDTO) {
         Notification notification = new Notification();
         notification.setBooking(booking);
@@ -35,6 +35,7 @@ public abstract class NotificationService {
         notification.setMessage(notificationDTO.getMessage());
         notification.setSeen(false);
         notificationRepository.save(notification);
+        return notification;
     }
 
     public void notify(NotificationType notificationType, Booking booking) {
@@ -46,38 +47,41 @@ public abstract class NotificationService {
                     new BookingCreationNotificationTemplate();
             NotificationDTO notificationDTO = bookingCreationNotificationTemplate.buildNotification(booking);
             notificationDTO.setNotificationType(notificationType);
+            // Save to DB
+            Notification notification = saveNotification(notificationType, booking, users, notificationDTO);
+            notificationDTO.setId(notification.getId());
+            notificationDTO.setCreatedAt(notification.getCreatedAt());
             // Notify the host
             sendToUser(booking.getListing().getUser().getUsername(), notificationDTO);
             // Notify the guest
             sendToUser(booking.getUser().getUsername(), notificationDTO);
-            // Save to DB
-            saveNotification(notificationType, booking, users, notificationDTO);
 
         } else if(notificationType.equals(NotificationType.BOOKING_DETAILS_UPDATE)) {
             BookingDetailsUpdateNotificationTemplate bookingDetailsUpdateNotificationTemplate =
                     new BookingDetailsUpdateNotificationTemplate();
             NotificationDTO notificationDTO = bookingDetailsUpdateNotificationTemplate.buildNotification(booking);
             notificationDTO.setNotificationType(notificationType);
+            // Save to DB
+            Notification notification = saveNotification(notificationType, booking, users, notificationDTO);
+            notificationDTO.setId(notification.getId());
+            notificationDTO.setCreatedAt(notification.getCreatedAt());
             // Notify the host
             sendToUser(booking.getListing().getUser().getUsername(), notificationDTO);
             // Notify the guest
             sendToUser(booking.getUser().getUsername(), notificationDTO);
-            // Save to DB
-            saveNotification(notificationType, booking, users, notificationDTO);
-
         } else if(notificationType.equals(NotificationType.BOOKING_CANCELLATION)) {
             BookingCancellationNotificationTemplate bookingCancellationNotificationTemplate =
                     new BookingCancellationNotificationTemplate();
             NotificationDTO notificationDTO = bookingCancellationNotificationTemplate.buildNotification(booking);
             notificationDTO.setNotificationType(notificationType);
+            // Save to DB
+            Notification notification = saveNotification(notificationType, booking, users, notificationDTO);
+            notificationDTO.setId(notification.getId());
+            notificationDTO.setCreatedAt(notification.getCreatedAt());
             // Notify the host
             sendToUser(booking.getListing().getUser().getUsername(), notificationDTO);
             // Notify the guest
             sendToUser(booking.getUser().getUsername(), notificationDTO);
-            // Save to DB
-            saveNotification(notificationType, booking, users, notificationDTO);
-
-
         }
     }
 }
