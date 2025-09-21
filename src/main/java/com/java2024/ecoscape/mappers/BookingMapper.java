@@ -7,6 +7,10 @@ import com.java2024.ecoscape.models.Listing;
 import com.java2024.ecoscape.models.User;
 import com.java2024.ecoscape.services.PriceService;
 import org.mapstruct.*;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.MappingTarget;
+
 
 @Mapper(componentModel = "spring")
 public interface BookingMapper {
@@ -82,6 +86,19 @@ public interface BookingMapper {
     })
 
     BookingRequest toRequest ( Booking booking);
+
+
+
+    /*===== Update existing entity from request ( contact + dates + guests) =====*/
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mappings({
+            @Mapping(target = "id", ignore = true),
+            @Mapping(target = "user", ignore = true),
+            @Mapping(target = "listing", ignore = true),
+            @Mapping(target = "status", ignore = true),
+            @Mapping(target = "totalPrice", ignore = true)
+    })
+    void updateEntityFromRequest(BookingRequest req , @MappingTarget Booking entity);
 
 
 

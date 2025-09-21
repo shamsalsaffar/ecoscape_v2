@@ -96,7 +96,7 @@ public class BookingService {
         // إضافة الرسالة إلى الاستجابة
         bookingResponse.setMessage("The booking number " + booking.getId() + "\n has been confirmed. A confirmation email has been sent.");
         // Send confirmation email
-       // sendBookingConfirmationByEmail(bookingResponse);
+        // sendBookingConfirmationByEmail(bookingResponse);
         return bookingResponse;
 
     }
@@ -232,7 +232,7 @@ public class BookingService {
         // 3) Upptäck om datum faktiskt har ändrat
         boolean datesChanged =
                 !existing.getStartDate().equals(eff.getStartDate())
-                || !existing.getEndDate().equals(eff.getEndDate());
+                        || !existing.getEndDate().equals(eff.getEndDate());
 
         // 4) om datum ändrats: kontrollera availabledatum och rechemlägg ( block/ merge)
         if (datesChanged) {
@@ -250,11 +250,7 @@ public class BookingService {
         }
 
         // 5) Kontrollera kontaktuppgifterna
-        existing.setFirstName(eff.getFirstName());
-        existing.setLastName(eff.getLastName());
-        existing.setUsersContactEmail(eff.getUsersContactEmail());
-        existing.setUsersContactPhoneNumber(eff.getUsersContactPhoneNumber());
-        existing.setGuests(eff.getGuests());
+        bookingMapper.updateEntityFromRequest(eff, existing);
 
         // 6) uppdatera status om tillåts
         if (eff.getStatus() != null && eff.getStatus() != existing.getStatus()) {
@@ -288,16 +284,12 @@ public class BookingService {
         }
         BookingRequest eff = effectiveBookingRequestFactory.forUpdateContact(existing, bookingRequest);
 
-        List<String> errors = bookingValidationPipeline.validateAll(eff, existing.getListing());
+
+        List<String> errors = bookingValidationPipeline.validateContactOnly(eff, existing.getListing());
         if (!errors.isEmpty()) {
             throw new BusinessValidationException(errors);
         }
-
-
-        existing.setFirstName(eff.getFirstName());
-        existing.setLastName(eff.getLastName());
-        existing.setUsersContactEmail(eff.getUsersContactEmail());
-        existing.setUsersContactPhoneNumber(eff.getUsersContactPhoneNumber());
+        bookingMapper.updateEntityFromRequest(eff, existing);
 
         Booking booking = bookingRepository.save(existing);
 
