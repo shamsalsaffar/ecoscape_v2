@@ -49,7 +49,7 @@ public class DateValidator implements BookingValidator {
 
        // 3) check listing available date
        boolean available = listingAvailableDatesService.checkAvailability(
-               listing.getId(), startDate, endDate
+               listing.getId(), endDate, startDate
        );
        if (!available) {
            errors.add("The listing is unavailable for the requested dates.");
