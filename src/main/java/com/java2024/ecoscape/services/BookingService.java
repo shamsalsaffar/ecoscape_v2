@@ -2,15 +2,16 @@ package com.java2024.ecoscape.services;
 
 import com.java2024.ecoscape.dto.BookingRequest;
 import com.java2024.ecoscape.dto.BookingResponse;
+import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.exceptions.UnauthorizedException;
 import com.java2024.ecoscape.models.*;
 import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
 import com.java2024.ecoscape.validation.BookingValidationPipeline;
-import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.validation.CalendarOrchestrator;
 import com.java2024.ecoscape.validation.EffectiveBookingRequestFactory;
+import com.java2024.ecoscape.websockets.service.PushNotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class BookingService {
     private final EffectiveBookingRequestFactory effectiveBookingRequestFactory;
     private final CalendarOrchestrator calendarOrchestrator;
     private final PriceService priceService;
+    private final PushNotificationService pushNotificationService;
     private  final BookingMapper bookingMapper;
 
     public BookingService(EmailService emailService, BookingRepository bookingRepository,
@@ -44,6 +46,7 @@ public class BookingService {
                           AuthenticationService authenticationService, BookingValidationPipeline bookingValidationPipeline,
                           EffectiveBookingRequestFactory effectiveBookingRequestFactory,
                           CalendarOrchestrator calendarOrchestrator,
+                          PriceService priceService, PushNotificationService pushNotificationService) {
                           PriceService priceService,
                           BookingMapper bookingMapper) {
         this.emailService = emailService;
@@ -56,6 +59,7 @@ public class BookingService {
         this.effectiveBookingRequestFactory = effectiveBookingRequestFactory;
         this.calendarOrchestrator = calendarOrchestrator;
         this.priceService = priceService;
+        this.pushNotificationService = pushNotificationService;
         this.bookingMapper = bookingMapper;
     }
 
@@ -90,6 +94,7 @@ public class BookingService {
         // save booking to db
         Booking savedBooking = bookingRepository.save(booking);
 
+        pushNotificationService.notify(NotificationType.BOOKING_CREATION, savedBooking);
         // تحويل الكيان إلى استجابة
         BookingResponse bookingResponse = bookingMapper.toResponse(savedBooking, priceService);
 
@@ -166,6 +171,9 @@ public class BookingService {
         listingAvailableDatesService.restoreAvailableDateRange(booking.getListing().getId(), booking.getStartDate(), booking.getEndDate());
         listingAvailableDatesService.mergeListingAvailableDates(booking.getListing().getId());
         bookingRepository.save(booking);
+
+        pushNotificationService.notify(NotificationType.BOOKING_CANCELLATION, booking);
+
         // إرسال تأكيد الإلغاء بالبريد الإلكتروني
         sendCancellationEmail(booking);
         // تحويل الكيان إلى استجابة
@@ -191,6 +199,9 @@ public class BookingService {
         listingAvailableDatesService.restoreAvailableDateRange(booking.getListing().getId(), booking.getStartDate(), booking.getEndDate());
         listingAvailableDatesService.mergeListingAvailableDates(booking.getListing().getId());
         bookingRepository.save(booking);
+
+        pushNotificationService.notify(NotificationType.BOOKING_CANCELLATION, booking);
+
         // إرسال تأكيد الإلغاء بالبريد الإلكتروني
         sendCancellationEmail(booking);
 
@@ -292,6 +303,8 @@ public class BookingService {
         bookingMapper.updateEntityFromRequest(eff, existing);
 
         Booking booking = bookingRepository.save(existing);
+
+        pushNotificationService.notify(NotificationType.BOOKING_DETAILS_UPDATE, booking);
 
         // Send email to confirm the update
         sendUpdateEmail(booking);
