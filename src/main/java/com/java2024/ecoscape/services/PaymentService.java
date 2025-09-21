@@ -3,6 +3,7 @@ package com.java2024.ecoscape.services;
 import com.java2024.ecoscape.dto.BookingResponse;
 import com.java2024.ecoscape.dto.PaymentRequest;
 import com.java2024.ecoscape.dto.PaymentResponse;
+import com.java2024.ecoscape.mappers.BookingMapper;
 import com.java2024.ecoscape.models.*;
 import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.PaymentRepository;
@@ -26,6 +27,8 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final BookingService bookingService;
+    private final BookingMapper bookingMapper;
+    private final PriceService priceService;
 
     // قراءة مفتاح Stripe من ملف الخصائص
     // Read the Stripe secret key from application.properties
@@ -36,12 +39,16 @@ public class PaymentService {
                           AuthenticationService authenticationService,
                           UserRepository userRepository,
                           BookingRepository bookingRepository,
-                          BookingService bookingService) {
+                          BookingService bookingService,
+                          BookingMapper bookingMapper,
+                          PriceService priceService) {
         this.paymentRepository = paymentRepository;
         this.authenticationService = authenticationService;
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
         this.bookingService = bookingService;
+        this.bookingMapper = bookingMapper;
+        this.priceService = priceService;
 
     }
 
@@ -105,10 +112,11 @@ public class PaymentService {
         // حفظ الدفع في قاعدة البيانات - Save to DB
         Payment savedPayment = paymentRepository.save(payment);
 
+        BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
+
         // send confirmation email after pay confirmation
-        bookingService.sendBookingConfirmationByEmail(
-                bookingService.convertBookingEntityToBookingResponse(booking)
-        );
+        bookingService.sendBookingConfirmationByEmail(bookingResponse);
+
         // تحويل الكائن إلى استجابة - Build response DTO
         PaymentResponse response = convertPaymentToResponse(savedPayment);
 
