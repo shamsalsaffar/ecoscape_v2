@@ -3,11 +3,13 @@ package com.java2024.ecoscape.services;
 import com.java2024.ecoscape.dto.BookingResponse;
 import com.java2024.ecoscape.dto.PaymentRequest;
 import com.java2024.ecoscape.dto.PaymentResponse;
+import com.java2024.ecoscape.emails.BookingEmailService;
 import com.java2024.ecoscape.mappers.BookingMapper;
 import com.java2024.ecoscape.models.*;
 import com.java2024.ecoscape.repositories.BookingRepository;
 import com.java2024.ecoscape.repositories.PaymentRepository;
 import com.java2024.ecoscape.repositories.UserRepository;
+import com.java2024.ecoscape.websockets.service.PushNotificationService;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -29,6 +31,8 @@ public class PaymentService {
     private final BookingService bookingService;
     private final BookingMapper bookingMapper;
     private final PriceService priceService;
+    private final PushNotificationService pushNotificationService;
+    private final BookingEmailService bookingEmailService;
 
     // قراءة مفتاح Stripe من ملف الخصائص
     // Read the Stripe secret key from application.properties
@@ -41,7 +45,9 @@ public class PaymentService {
                           BookingRepository bookingRepository,
                           BookingService bookingService,
                           BookingMapper bookingMapper,
-                          PriceService priceService) {
+                          PriceService priceService,
+                          PushNotificationService pushNotificationService,
+                          BookingEmailService bookingEmailService) {
         this.paymentRepository = paymentRepository;
         this.authenticationService = authenticationService;
         this.userRepository = userRepository;
@@ -49,6 +55,8 @@ public class PaymentService {
         this.bookingService = bookingService;
         this.bookingMapper = bookingMapper;
         this.priceService = priceService;
+        this.pushNotificationService = pushNotificationService;
+        this.bookingEmailService = bookingEmailService;
 
     }
 
@@ -115,7 +123,9 @@ public class PaymentService {
         BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
 
         // send confirmation email after pay confirmation
-        bookingService.sendBookingConfirmationByEmail(bookingResponse);
+       bookingEmailService.sendBookingConfirmationByEmail(bookingResponse);
+
+       pushNotificationService.notify(NotificationType.BOOKING_CREATION, booking);
 
         // تحويل الكائن إلى استجابة - Build response DTO
         PaymentResponse response = convertPaymentToResponse(savedPayment);
