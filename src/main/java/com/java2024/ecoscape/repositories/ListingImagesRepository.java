@@ -20,8 +20,9 @@ public interface ListingImagesRepository extends JpaRepository<ListingImages, Lo
             "FROM listing_images li " +
             "JOIN listings l ON li.listing_id = l.id " +
             "JOIN bookings b ON b.listing_id = l.id " +
-            "WHERE b.id = :bookingId",
+            "WHERE b.id = :bookingId " +
+            "AND li.id = (SELECT MIN(id) FROM listing_images WHERE listing_id = l.id)",
             nativeQuery = true)
-    List<String> findImageUrlsByBookingId(@Param("bookingId") Long bookingId);
+    String findFirstImageUrlsByBookingId(@Param("bookingId") Long bookingId);
 
 }

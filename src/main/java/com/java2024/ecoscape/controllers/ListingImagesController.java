@@ -117,8 +117,8 @@ public class ListingImagesController {
     }
 
     @GetMapping("/booking/{bookingId}")
-    public ResponseEntity<List<String>> findImageUrlsByBookingId(@PathVariable Long bookingId) {
-        List<String> listingImage = listingImagesService.findImageUrlsByBookingId(bookingId);
-        return ResponseEntity.ok(listingImage);
+    public ResponseEntity<String> findImageUrlsByBookingId(@PathVariable Long bookingId) {
+        String listingImageUrl = listingImagesService.findImageUrlsByBookingId(bookingId);
+        return ResponseEntity.ok(listingImageUrl);
     }
 }

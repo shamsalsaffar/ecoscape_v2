@@ -130,9 +130,9 @@ public class ListingImagesService {
         listingImagesRepository.deleteAll(existingImages);
     }
 
-    public List <String> findImageUrlsByBookingId(Long bookingId) {
-        List <String> listingImages = listingImagesRepository.findImageUrlsByBookingId(bookingId);
-        return listingImages;
+    public String findImageUrlsByBookingId(Long bookingId) {
+        String listingImageUrl = listingImagesRepository.findFirstImageUrlsByBookingId(bookingId);
+        return listingImageUrl;
     }
 
 
