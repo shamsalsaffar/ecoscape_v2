@@ -1,5 +1,6 @@
 package com.java2024.ecoscape.websockets.templates;
 
+import com.java2024.ecoscape.dto.NotificationDTO;
 import com.java2024.ecoscape.models.Booking;
 
 public abstract class NotificationTemplate {
@@ -11,16 +12,18 @@ public abstract class NotificationTemplate {
     private String footer;
 
     //access modifier protected är en bättre praxis i template pattern, det gör att bara child klasserna kan override abstrakta metoderna
-    protected abstract String buildHeader();
+    protected abstract String buildHeader(Booking booking);
 
-    protected abstract String buildBody(Booking booking);
+    protected abstract String buildBody();
 
     protected abstract String buildFooter();
 
-    public String buildMessage(Booking booking) {
-        return buildHeader() + "\n"
-                + buildBody(booking) + "\n"
-                + buildFooter();
+    public NotificationDTO buildNotification(Booking booking) {
+        NotificationDTO notificationDTO = new NotificationDTO();
+        notificationDTO.setBookingId(booking.getId());
+        notificationDTO.setTitle(buildHeader(booking));
+        notificationDTO.setMessage(buildBody() + "\n" + buildFooter());
+        return notificationDTO;
     }
 
     public String getHeader() {

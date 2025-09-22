@@ -5,14 +5,14 @@ import com.java2024.ecoscape.models.Booking;
 public class BookingCreationNotificationTemplate extends NotificationTemplate {
 
     @Override
-    protected String buildHeader() {
-        setHeader("Booking Confirmed!");
+    protected String buildHeader(Booking booking) {
+        setHeader("Booking " + booking.getId() + " is confirmed!");
         return getHeader();
     }
 
     @Override
-    protected String buildBody(Booking booking) {
-            setBody("The booking with ID " + booking.getId() + " has been confirmed.");
+    protected String buildBody() {
+            setBody("We’re excited to let you know that the booking has been confirmed.");
             return getBody();
         }
 

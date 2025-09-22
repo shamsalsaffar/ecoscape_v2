@@ -5,14 +5,14 @@ import com.java2024.ecoscape.models.Booking;
 public class BookingCancellationNotificationTemplate extends NotificationTemplate {
 
     @Override
-    protected String buildHeader() {
-        setHeader("Booking Cancelled");
+    protected String buildHeader(Booking booking) {
+        setHeader("Booking " + booking.getId() + " is cancelled!");
         return getHeader();
     }
 
     @Override
-    protected String buildBody(Booking booking) {
-        setBody("The booking with ID" + booking.getId() + "has been cancelled.");
+    protected String buildBody() {
+        setBody("The booking has been cancelled. The booking status is now updated to reflect the cancellation.");
         return getBody();
     }
 

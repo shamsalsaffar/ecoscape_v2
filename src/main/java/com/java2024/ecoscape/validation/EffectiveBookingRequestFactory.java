@@ -37,7 +37,7 @@ public class EffectiveBookingRequestFactory {
         effective.setFirstName(pick(incoming.getFirstName(), existing.getFirstName()));
         effective.setLastName(pick(incoming.getLastName(), existing.getLastName()));
         effective.setUsersContactEmail(pick(incoming.getUsersContactEmail(), existing.getUsersContactEmail()));
-        effective.setUsersContactPhoneNumber(pick(existing.getUsersContactPhoneNumber(),existing.getUsersContactPhoneNumber()));
+        effective.setUsersContactPhoneNumber(pick(incoming.getUsersContactPhoneNumber(),existing.getUsersContactPhoneNumber()));
 
         effective.setStartDate(existing.getStartDate());
         effective.setEndDate(existing.getEndDate());
