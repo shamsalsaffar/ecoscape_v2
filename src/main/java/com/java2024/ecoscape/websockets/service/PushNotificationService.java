@@ -2,6 +2,7 @@ package com.java2024.ecoscape.websockets.service;
 
 import com.java2024.ecoscape.dto.NotificationDTO;
 import com.java2024.ecoscape.models.Notification;
+import com.java2024.ecoscape.models.User;
 import com.java2024.ecoscape.repositories.NotificationRepository;
 import com.java2024.ecoscape.services.AuthenticationService;
 import com.java2024.ecoscape.services.NotificationService;
@@ -38,7 +39,9 @@ public class PushNotificationService extends NotificationService {
         messagingTemplate.convertAndSend("/topic/notifications", notificationDTO);
     }
 
+
     public List<NotificationDTO> getAllNotificationsByUserId (Long userId){
+        User authenticateUser = authenticationService.authenticateMethods();
         List<Notification> notifications = notificationRepository.findAllByUsers_Id(userId);
         return mapToDTO(notifications);
     }
