@@ -2,6 +2,7 @@ package com.java2024.ecoscape.services;
 
 import com.java2024.ecoscape.dto.BookingRequest;
 import com.java2024.ecoscape.dto.BookingResponse;
+import com.java2024.ecoscape.emails.BookingEmailService;
 import com.java2024.ecoscape.exceptions.BusinessValidationException;
 import com.java2024.ecoscape.exceptions.UnauthorizedException;
 import com.java2024.ecoscape.models.*;
@@ -39,6 +40,7 @@ public class BookingService {
     private final PriceService priceService;
     private final PushNotificationService pushNotificationService;
     private  final BookingMapper bookingMapper;
+    private final BookingEmailService bookingEmailService;
 
     public BookingService(EmailService emailService, BookingRepository bookingRepository,
                           UserRepository userRepository, ListingRepository listingRepository,
@@ -47,7 +49,8 @@ public class BookingService {
                           EffectiveBookingRequestFactory effectiveBookingRequestFactory,
                           CalendarOrchestrator calendarOrchestrator,
                           PriceService priceService, PushNotificationService pushNotificationService,
-                          BookingMapper bookingMapper) {
+                          BookingMapper bookingMapper,
+                          BookingEmailService bookingEmailService) {
         this.emailService = emailService;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -60,6 +63,9 @@ public class BookingService {
         this.priceService = priceService;
         this.pushNotificationService = pushNotificationService;
         this.bookingMapper = bookingMapper;
+        this.bookingEmailService = bookingEmailService;
+
+
     }
 
 
@@ -92,56 +98,33 @@ public class BookingService {
         listingAvailableDatesService.blockAvailableDatesAfterBooking(listingId, booking);
         // save booking to db
         Booking savedBooking = bookingRepository.save(booking);
-
-        pushNotificationService.notify(NotificationType.BOOKING_CREATION, savedBooking);
-        // تحويل الكيان إلى استجابة
         BookingResponse bookingResponse = bookingMapper.toResponse(savedBooking, priceService);
-
-        // إضافة الرسالة إلى الاستجابة
         bookingResponse.setMessage("The booking number " + booking.getId() + "\n has been confirmed. A confirmation email has been sent.");
-        // Send confirmation email
-        // sendBookingConfirmationByEmail(bookingResponse);
         return bookingResponse;
 
     }
-    public void sendBookingConfirmationByEmail(BookingResponse bookingResponse) {
-        String to = bookingResponse.getUsersContactEmail();
-        String subject = "Booking Confirmation - EcoScape";
-        String text = "Hello " + bookingResponse.getFirstName() + "!\n\n" +
-                "We are pleased to inform you that your booking with EcoScape has been successfully confirmed. Below are the details of your booking:\n" +
-                // "Booking ID: " + bookingResponse.getBookingId() + "\n" +
-                //"Listing ID: " + bookingResponse.getListingId() + "\n" +
-                //"Thank you for choosing EcoScape. We are excited to have you stay with us and look forward to making your experience memorable.\n\n" +
-                bookingResponse.toString() + "\n" +
-                "If you have any questions, feel free to contact us.\n"+
-                "Best regards,\nThe EcoScape Team";
-
-        emailService.sendEmail(to, subject, text);
-    }
-
 
 
     // method to get all booking
     public List<BookingRequest> getAllbookings() {
         User authenticateUser = authenticationService.authenticateMethods();
-
         return bookingRepository.findAll()
                 .stream()
                 .map(bookingMapper ::toRequest)
                 .collect(Collectors.toList());
     }
 
+
     public BookingResponse getBookingById(Long id) {
         User authenticateUser = authenticationService.authenticateMethods();
-
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
         return bookingMapper.toResponse(booking, priceService);
     }
 
+
     public List<BookingResponse> getBookingByUser() {
         User authenticateUser = authenticationService.authenticateMethods();
-
         List<Booking> bookings = bookingRepository.findByUser(authenticateUser);
         return bookings.stream()
                 .map(b -> bookingMapper.toResponse(b, priceService))
@@ -152,7 +135,6 @@ public class BookingService {
 
     @Transactional
     public BookingResponse cancelBookingByUser(Long bookingId){
-
         User authenticateUser = authenticationService.authenticateMethods();
 
         Booking booking = bookingRepository.findById(bookingId)
@@ -173,12 +155,11 @@ public class BookingService {
 
         pushNotificationService.notify(NotificationType.BOOKING_CANCELLATION, booking);
 
-        // إرسال تأكيد الإلغاء بالبريد الإلكتروني
-        sendCancellationEmail(booking);
-        // تحويل الكيان إلى استجابة
+        // send email
+        bookingEmailService.sendCancellationEmail(booking);
         BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
 
-        // إضافة الرسالة إلى الاستجابة
+        // send Message with response
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been cancelled. A confirmation email has been sent.");
 
         return bookingResponse;
@@ -190,7 +171,7 @@ public class BookingService {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
-        // التحقق مما إذا كان الحجز قد تم إلغاؤه مسبقًا
+        // check if this booking has not been cancelled previously
         if (booking.getStatus() == Status.CANCELLED_BY_USER || booking.getStatus() == Status.CANCELLED_BY_HOST) {
             throw new RuntimeException("This booking has already been cancelled.");
         }
@@ -201,29 +182,18 @@ public class BookingService {
 
         pushNotificationService.notify(NotificationType.BOOKING_CANCELLATION, booking);
 
-        // إرسال تأكيد الإلغاء بالبريد الإلكتروني
-        sendCancellationEmail(booking);
+        // send email
+        bookingEmailService.sendCancellationEmail(booking);
 
         // تحويل الكيان إلى استجابة
         BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
 
-        // إضافة الرسالة إلى الاستجابة
+        // send Message with response
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been cancelled. A confirmation email has been sent.");
 
         return bookingResponse;
     }
 
-    private void sendCancellationEmail(Booking booking  ) {
-        String to = booking.getUsersContactEmail();
-        String subject = "Confirm cancellation of booking";
-        String text = "Hello" + booking.getFirstName() + "!\n\n" +
-                "We would like to inform you that the booking number "+ booking.getId() + " in "+ booking.getListing().getId()
-                + " you made with us has been cancelled.\n"+ "We apologize for any inconvenience this may cause.\n\n"
-                + "If you need any assistance, please don't hesitate to contact us.\n\n"+ "Best regards,\nThe Ecoscape Team.";
-
-        // Sending the email using the EmailService
-        emailService.sendEmail(to, subject, text);
-    }
 
     @Transactional
     public BookingResponse updateBooking(BookingRequest bookingRequest, Long bookingId, Listing listing, User user) {
@@ -256,7 +226,6 @@ public class BookingService {
                     existing.getEndDate()
             );
             existing.setTotalPrice(pb.getTotal());
-
         }
 
         // 5) Kontrollera kontaktuppgifterna
@@ -275,7 +244,7 @@ public class BookingService {
         }
 
         Booking saved = bookingRepository.save(existing);
-        sendUpdateEmail(saved);
+        bookingEmailService.sendUpdateEmail(saved);
 
         BookingResponse bookingResponse = bookingMapper.toResponse(saved, priceService);
         bookingResponse.setMessage("The booking number " + saved.getId() + " has been updated. A confirmation email has been sent.");
@@ -306,37 +275,12 @@ public class BookingService {
         pushNotificationService.notify(NotificationType.BOOKING_DETAILS_UPDATE, booking);
 
         // Send email to confirm the update
-        sendUpdateEmail(booking);
+        bookingEmailService.sendUpdateEmail(booking);
         // convert to response
         BookingResponse bookingResponse = bookingMapper.toResponse(booking, priceService);
         // Addera SMS till response
         bookingResponse.setMessage("The booking number " + booking.getId() + " has been update. A update email has been sent.");
         return bookingResponse;
-    }
-
-    private void sendUpdateEmail(Booking booking) {
-        String to = booking.getUsersContactEmail();
-        String subject = "Your booking details have been updated";
-
-        StringBuilder text = new StringBuilder();
-        text.append("Hello ").append(booking.getFirstName()).append(",\n\n");
-        text.append("We would like to inform you that the booking number ")
-                .append(booking.getId())
-                .append(" for the listing ID ")
-                .append(booking.getListing().getId())
-                .append(" has been successfully updated.\n\n");
-
-        text.append("Here are your updated contact details:\n");
-        text.append("Full Name: ").append(booking.getFirstName()).append(" ").append(booking.getLastName()).append("\n");
-        text.append("Email: ").append(booking.getUsersContactEmail()).append("\n");
-        text.append("Phone: ").append(booking.getUsersContactPhoneNumber()).append("\n\n");
-
-        text.append("If you have any questions or need further assistance, please don't hesitate to contact us.\n\n");
-        text.append("Best regards,\nThe Ecoscape Team.");
-
-        // إرسال البريد الإلكتروني باستخدام الخدمة
-        // send mail by java mail
-        emailService.sendEmail(to, subject, text.toString());
     }
 
 
