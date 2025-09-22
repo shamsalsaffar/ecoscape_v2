@@ -3,10 +3,7 @@ package com.java2024.ecoscape.controllers;
 import com.java2024.ecoscape.dto.NotificationDTO;
 import com.java2024.ecoscape.websockets.service.PushNotificationService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -14,9 +11,11 @@ import java.util.List;
 @RequestMapping("/api/notifications")
 public class NotificationsController {
     private final PushNotificationService notificationService;
+    private final PushNotificationService pushNotificationService;
 
-    public NotificationsController(PushNotificationService notificationService) {
+    public NotificationsController(PushNotificationService notificationService, PushNotificationService pushNotificationService) {
         this.notificationService = notificationService;
+        this.pushNotificationService = pushNotificationService;
     }
 
     @GetMapping("/{userId}")
