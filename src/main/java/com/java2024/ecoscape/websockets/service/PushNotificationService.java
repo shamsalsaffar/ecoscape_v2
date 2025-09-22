@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class PushNotificationService extends NotificationService {
@@ -63,6 +64,14 @@ public class PushNotificationService extends NotificationService {
         notificationDTO.setMessage(notificationEntity.getMessage());
         notificationDTO.setTitle(notificationEntity.getTitle());
         notificationDTO.setSeen(notificationEntity.getSeen());
+        return notificationDTO;
+    }
+
+    public NotificationDTO markPushNotificationAsSeen(Long notificationId){
+        Notification notification = notificationRepository.findById(notificationId).orElseThrow(() -> new NoSuchElementException("Notification not found"));
+        notification.setSeen(true);
+        notificationRepository.save(notification);
+        NotificationDTO notificationDTO = mapToDTO(notification);
         return notificationDTO;
     }
 
