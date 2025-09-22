@@ -37,7 +37,12 @@ Eftersom vi tidigare skrivit allt i booking service så valde vi att följa SRP 
 
 När vi kommer till mönster så gör template att vi undviker duplicering utav kod i vår notifikation bygglogik genom att centrilisera gemensam struktur medans specifika implementationer kan variera. Vi har en abstrakt notification template som har tre abstrakta metoder dom bygger header, body och footer. Child klasserna är BookingCancellationNotificationTemplate, BookingCreationNotificationTemplate, BookingDetailsUpdateNotificationTemplate dom extendar notificationtemplate men implementerar det på varsit sätt avseende notificationType. Detta gör att vi undviker skriva om kod och om vi vill i framtiden implementera fler notifikationstyper så använder vi oss en satt grundstruktur.
 
+<img width="1338" height="774" alt="image" src="https://github.com/user-attachments/assets/280b412d-7dd1-46e4-9ba0-cf7e8d2b5331" />
+
 Vi har har även skapat en till Template klass som är notificationService som hantera olika kanaler. Just nu är det bara pushnotifications som extendar notificationService och implementerar de två abstraktametoder, sentToUser och broadcast. Men i framtiden hade velat lägga till email och sms som då hade implementerat sendToUser och broadcast på sina egna sätt.
+
+<img width="972" height="358" alt="image" src="https://github.com/user-attachments/assets/cf5f4c74-83a4-412c-8a2c-8ee53eb15f2f" />
+
 
 En Validation Strategy är ett designmönster som gör att valideringslogiken kan bytas ut beroende på bokningskontext utan att man behöver ändra den centrala logiken i BookingService.
 Istället för långa if/else-kedjor väljer systemet en policy (strategi) som bestämmer vilka regler som ska köras.
@@ -57,3 +62,5 @@ Strategy = välja rätt policy för validering beroende på kontext.
 Pipeline = köra de valda reglerna i sekvens.
 
 Resultatet blir renare kod, mer flexibel logik, lättare testning och tydligare ansvarsfördelning.
+
+<img width="1700" height="1424" alt="image" src="https://github.com/user-attachments/assets/0378355f-7287-419b-91cb-1574dc8c2a65" />
