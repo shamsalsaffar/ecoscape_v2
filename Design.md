@@ -1,5 +1,4 @@
-### Vilken del/feature har ni arbetat med? (Refaktorering eller
-ny).
+### Vilken del/feature har ni arbetat med? (Refaktorering eller ny).
 
 Vi vill refaktorera vår booking service och göra den mer modulär. Vi vill även implementera
 realtime notifikationer för user och host som kopplas med vår booking service. Det gör så att
