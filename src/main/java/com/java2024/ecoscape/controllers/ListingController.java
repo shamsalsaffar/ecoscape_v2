@@ -3,6 +3,7 @@ package com.java2024.ecoscape.controllers;
 import com.java2024.ecoscape.dto.ListingRequest;
 import com.java2024.ecoscape.dto.ListingResponse;
 import com.java2024.ecoscape.models.Category;
+import com.java2024.ecoscape.repositories.ListingImagesRepository;
 import com.java2024.ecoscape.repositories.ListingRepository;
 import com.java2024.ecoscape.services.ListingService;
 import jakarta.validation.Valid;
@@ -21,11 +22,13 @@ public class ListingController {
 
     private final ListingService listingService;
     private final ListingRepository listingRepository;
+    private final ListingImagesRepository listingImagesRepository;
 
 
-    public ListingController(ListingService listingService, ListingRepository listingRepository) {
+    public ListingController(ListingService listingService, ListingRepository listingRepository, ListingImagesRepository listingImagesRepository) {
         this.listingService = listingService;
         this.listingRepository = listingRepository;
+        this.listingImagesRepository = listingImagesRepository;
     }
 
     @PostMapping("/create")
@@ -69,4 +72,6 @@ public class ListingController {
         return ResponseEntity.ok(listingService.searchAvailableListings(checkInDate, checkOutDate, name, location, capacity, category));
 
     }
+
+
 }

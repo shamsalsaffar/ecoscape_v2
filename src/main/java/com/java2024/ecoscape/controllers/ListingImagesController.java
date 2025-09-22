@@ -115,4 +115,10 @@ public class ListingImagesController {
 
         return ResponseEntity.ok("All listing images belonging to " + listingId + " have been successfully deleted!");
     }
+
+    @GetMapping("/booking/{bookingId}")
+    public ResponseEntity<List<String>> findImageUrlsByBookingId(@PathVariable Long bookingId) {
+        List<String> listingImage = listingImagesService.findImageUrlsByBookingId(bookingId);
+        return ResponseEntity.ok(listingImage);
+    }
 }

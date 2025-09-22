@@ -129,4 +129,11 @@ public class ListingImagesService {
 
         listingImagesRepository.deleteAll(existingImages);
     }
+
+    public List <String> findImageUrlsByBookingId(Long bookingId) {
+        List <String> listingImages = listingImagesRepository.findImageUrlsByBookingId(bookingId);
+        return listingImages;
+    }
+
+
 }
