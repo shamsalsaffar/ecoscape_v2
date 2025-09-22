@@ -1,10 +1,9 @@
 ### Vilken del/feature har ni arbetat med? (Refaktorering eller ny).
 
-Vi vill refaktorera vår booking service och göra den mer modulär. Vi vill även implementera
+Vi vill refaktorera vår booking service och göra den mer modulärch lättare att underhålla. Tidigare låg mycket logik samlad i samma klass och metoderna blev både långa och duplicerade. Vi vill även implementera
 realtime notifikationer för user och host som kopplas med vår booking service. Det gör så att
 en användare kommer se notifikationer baserat på om dem har bokat, avbokat eller fått sin
-bokning cancelled. Vi ska separera logiken i vår booking service för att minska duplicering och bryta ner vår
-god method.
+bokning cancelled. 
 
 ### Vad ingår och vad ingår inte?
 
@@ -16,9 +15,18 @@ som notifikationer men vi kommer skapa en bra grund att göra det till framtiden
 
 ### Refaktorering: beskriv vilka problem ni såg t.ex. svagheter i designen, tecken på dålig struktur, brister i ansvarsfördelning eller beroenden m.m. Ge exempel med antingen kodexempel (printscreen) eller enkel förklaring.
 
-Vi har för mycket ansvar i booking service vilket gör att vi har en god method som gör 7 olika grejer. Vi ville skapa en bättre struktur, dela upp på ansvaret och
-minska duplicering för att få en ren kod.
+BookingService hade för mycket ansvar samlat i en och samma klass. Det mest tydliga problemet var att vi hade en “god metod” som gjorde upp till sju olika saker samtidigt: validerade data, hanterade kalendern, satte priser, skickade mail, uppdaterade status, sparade till databasen och returnerade ett svar.
 
+Detta gav flera svagheter i designen:
+
+- Bristande ansvarsfördelning (SRP) → en metod skötte flera olika logiker.
+
+- Dålig struktur → koden blev svår att läsa och underhålla.
+
+- Duplicering → samma valideringslogik förekom på flera ställen.
+
+- Starka beroenden → BookingService kände till för många detaljer om andra delar
+  
 ### Ny funktionalitet: beskriv behovet/problemet, vilket use case eller krav saknades?
 
 Vi saknade en notifiering vilket kan skapa förvirring mellan användare, så får att fixa det problemet så ville vi implementera in-app realtime notifikationer för de use cases vi tyckte var viktigaste att ha notifikationer för så som cancel, create och update booking. Så för att höja användarupplevelsen och höja projektkvaliten så trots om vi skickar email konfirmation så hade pushat notifikationer ökat användarupplevelsen mer vilket är något vi strävar efter.
@@ -32,7 +40,9 @@ Mönster: TEMPLATE, STRATEGY, DATA MAPPER, REPOSITORY
 
 ### Motivera varför just dessa passar för ert problem.
 
-Eftersom vi tidigare skrivit allt i booking service så valde vi att följa SRP för att dela upp på logiken. Men generellt så vill vi följa KISS och DRY i vår kod både backend och frontend då vi vill ha en hög kvalité på vår kod.
+Eftersom vi tidigare hade samlat all logik i BookingService valde vi att följa Single Responsibility Principle (SRP) för att bryta ner koden i mindre delar med tydligt ansvar. Det gör att varje klass eller komponent har ett specifikt syfte, vilket både ökar läsbarheten och underlättar underhåll.
+Vi har också följt KISS (Keep It Simple, Stupid) och DRY (Don’t Repeat Yourself) för att undvika onödig komplexitet och duplicerad kod.
+vi använda Validation Strategy (genom BookingValidationPipeline och de olika BookingValidator-klasserna som Contact-, Date- och GuestValidator). Istället för långa if/else-block i BookingService använder vi en strategi där varje valideringsregel är en egen klass.
 
 När vi kommer till mönster så gör template att vi undviker duplicering utav kod i vår notifikation bygglogik genom att centrilisera gemensam struktur medans specifika implementationer kan variera. Vi har en abstrakt notification template som har tre abstrakta metoder dom bygger header, body och footer. Child klasserna är BookingCancellationNotificationTemplate, BookingCreationNotificationTemplate, BookingDetailsUpdateNotificationTemplate dom extendar notificationtemplate men implementerar det på varsit sätt avseende notificationType. Detta gör att vi undviker skriva om kod och om vi vill i framtiden implementera fler notifikationstyper så använder vi oss en satt grundstruktur.
 
@@ -43,23 +53,43 @@ Vi har har även skapat en till Template klass som är notificationService som h
 <img width="972" height="358" alt="image" src="https://github.com/user-attachments/assets/cf5f4c74-83a4-412c-8a2c-8ee53eb15f2f" />
 
 
-En Validation Strategy är ett designmönster som gör att valideringslogiken kan bytas ut beroende på bokningskontext utan att man behöver ändra den centrala logiken i BookingService.
-Istället för långa if/else-kedjor väljer systemet en policy (strategi) som bestämmer vilka regler som ska köras.
 
 ### Beskriv den nya designen: hur ser ansvars- och rollfördelningen ut?
 
 Vi har en notifikationtemplate som är en abstraktklass och den har som har tre abstrakta metoder och den abstraktaklassen i sin tur har tre childklasser (bookingCancellationNotificationTemplate, BookingCreationNotificationTemplate, BookingUpdateNotificationTemplate)
 
-BookingService -> väljer policy -> Validation Strategy bygger pipeline -> Pipeline kör regler (Date, Guest, Contact, Availability) -> Vid fel: kastar BusinessValidationException -> Vid succé: flödet fortsätter
+### Booking – ansvar och roller (refaktoreringen):
+- **BookingService (orkestrering):** Minimal flödeslogik. Hämtar user/listing, triggar validering, delegerar kalender- och prisberäkning, sparar och mappar svar.
+- **BookingValidationPipeline (Strategy + Pipeline):** Bygger kedjan av regler och kör dem i turordning.
 
+1. **DateValidator** – datumrelationer (ej dåtid, slut efter start).
+2. **GuestValidator** – min/max och mot listingens capacity.
+3. **ContactValidator** – namn/telefon/e-postformat.
+4. **Availability** – kontrollerar lediga datum via ListingAvailableDatesService.
+
+- **CalendarOrchestrator:** tryRescheduleOrThrow, reschedule, release – isolerar kalenderlogiken.
+- **PriceService:** Beräknar price per night, cleaningFee, serviceFee och total (återanvänds vid create/update).
+- **BookingMapper (MapStruct):** Entity ⇄ DTO, inkl. AfterMapping för websiteFee.
+- **EffectiveBookingRequestFactory:** Bygger “effektivt” uppdateringsobjekt (kombinerar inkommande fält med befintliga).
+
+#### Systemflöde :
+BookingService -> väljer policy -> Validation Strategy bygger pipeline -> Pipeline kör regler (Date, Guest, Contact, Availability) -> Vid fel: kastar BusinessValidationException -> Vid succé: flödet fortsätter
 ### Förklara hur principer/mönster har implementerats.
 
 Genom att vi har skapat en parent klass med tre childklasser som implementerar abstrakta metoder ifrån parent klassen så har vi då använt oss utav Template Pattern.
 
-Strategy = välja rätt policy för validering beroende på kontext.
+#### Booking – principer & Patterns: 
+- **SRP/KISS/DRY:** Varje klass har ett tydligt ansvar; enkel, icke-duplicerad logik.
+- **Strategy + Pipeline (Validation):** Regler bryts ut i separata validatorer som kan kombineras/ändras utan att röra BookingService.
+- **Mapper Pattern (BookingMapper/AfterMapping som “hook” för prissättning):** Prisdelar injiceras efter mapping utan att blanda DTO-logik med beräkningar.
+- **Factory (EffectiveBookingRequestFactory):** Standardiserar uppdateringar — minskar if/else-spagetti och sidEffekter.
+- **Orchestrator (CalendarOrchestrator):** Inkapslar schemaläggning/återställning av datum så att BookingService förblir tunn.
 
-Pipeline = köra de valda reglerna i sekvens.
+### Konkreta effekter:
+- Renare controller/service-gräns (mindre kod i BookingService).
+- Testbarhet (enhetstester per validator, PriceService, Orchestrator och Mapper).
+- Utbyggbarhet (lägg till en ny regel → ny validator; ny prislogik → PriceService; ny kalenderpolicy → Orchestrator). 
 
-Resultatet blir renare kod, mer flexibel logik, lättare testning och tydligare ansvarsfördelning.
+### Klassdiagram för valideringssystemet efter refaktorering
 
 <img width="1700" height="1424" alt="image" src="https://github.com/user-attachments/assets/0378355f-7287-419b-91cb-1574dc8c2a65" />
