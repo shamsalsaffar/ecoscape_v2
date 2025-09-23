@@ -41,11 +41,6 @@ public class PushNotificationService extends NotificationService {
     }
 
 
-    public List<NotificationDTO> getAllNotificationsByUserId (Long userId){
-        User authenticateUser = authenticationService.authenticateMethods();
-        List<Notification> notifications = notificationRepository.findAllByUsers_Id(userId);
-        return mapToDTO(notifications);
-    }
 
     private List<NotificationDTO> mapToDTO(List<Notification> notificationList) {
         List<NotificationDTO> notifications = new ArrayList<>();
@@ -73,6 +68,11 @@ public class PushNotificationService extends NotificationService {
         notificationRepository.save(notification);
         NotificationDTO notificationDTO = mapToDTO(notification);
         return notificationDTO;
+    }
+    public List<NotificationDTO> getPushAllNotificationsByUserId (Long userId){
+        User authenticateUser = authenticationService.authenticateMethods();
+        List<Notification> notifications = notificationRepository.findAllByUsers_Id(userId);
+        return mapToDTO(notifications);
     }
 
 }
