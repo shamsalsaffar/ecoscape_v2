@@ -22,13 +22,17 @@ FK-001. Vid en ny bokning ska en bekräftelsenotis skickas till en USER och HOST
 
 FK-002. Vid avbokning ska en avbokningsnotis skickas.
 
-FK-003. Lagra notifikationerna i databasen.
+FK-003. Vid uppdatering booking detaljer ska en notis skickas.
+
+FK-004. Lagra notifikationerna i databasen.
 
 ### 3.1.2 Bokningshantering
 
-FK-004. En USER ska kunna boka en listing.
+FK-005. En USER ska kunna boka en listing.
 
-FK-005. En USER ska kunna avboka en listing.
+FK-006. En USER/HOST ska kunna avboka en listing.
+
+FK-007. En USER/HOST ska kunna ändra booking detajer..
 
 
 ## Icke-funktionella krav
@@ -51,9 +55,16 @@ IFK-005. En notifikation ska bevaras i minst 90 dagar i databasen.
 
 ### 3.2.4 Underhållbarhet
 
-IFK-006. Notifieringslogiken ska vara modulär och följa Template Method Pattern.
+IFK-006. Notifierings content ska vara modulär och följa Template Method Pattern.
 
 IFK-007. Nya notistyper ska kunna läggas till utan att ändra befintliga klasser.
+
+IFK-008. Notifierings väggar ska vara modulära och följa Template Method Pattern.
+
+IFK-009. Nya notisväggar ska kunna läggas till utan att ändra befintliga klasser.
+
+
+
 
 # Prioriteringar & beroenden – Tabell
 
