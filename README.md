@@ -1,89 +1,141 @@
-# Introduktion 
+# EcoScape Backend -V2
 
-Systemet ska skicka automatiserad notifikationer med samband med bokning eller avbokning. Push notifikationer ska skickas till både USER och HOST. Notifikationerna ska skickas i realtid och säkerställa att lagra notifikationerna om en USER är offline just då. Vi ska använda oss utav template mönster. 
+EcoScape is a full-stack eco-tourism platform for booking eco-friendly listings.
 
-Vi ska även refaktorera vårt system för att designa om vårt boknings system genom att bryta ner en metod för att följa principen SRP och strategy mönster.
+This repository contains the backend built with Spring Boot.
 
-# Intressenter
+---
 
-Grupp A Utvecklingsteam (Iasmina & Alexander och Shams)
+## Tech Stack
 
-Grupp B Slutanvändare (Iasmina)
+- Java 17
+- Spring Boot
+- Spring Security + JWT
+- PostgreSQL
+- JPA / Hibernate
+- Maven
+- Stripe API
+- Java Mail (SMTP)
+- WebSocket (STOMP, SockJS)
+- MapStruct
 
-Lärare Produktägare
+---
 
-# Kravspecifikation
+## Authentication
 
-## Funktionella krav
+- Stateless JWT authentication
+- Role-based access:
+  - USER
+  - HOST
+  - ADMIN
+- Secured endpoints via Spring Security
 
-### 3.1.1 Automatiska notiser
+---
 
-FK-001. Vid en ny bokning ska en bekräftelsenotis skickas till en USER och HOST.
+## Core Features
 
-FK-002. Vid avbokning ska en avbokningsnotis skickas.
+### Listings
+- Create, update, delete listings
+- Filtering and search
+- Support for eco-friendly features
 
-FK-003. Vid uppdatering booking detaljer ska en notis skickas.
+### Booking System
+- Create, update, cancel bookings
+- User & host cancellation
+- Booking history per user
 
-FK-004. Lagra notifikationerna i databasen.
+### Availability
+- Prevents overlapping bookings
+- Automatically updates dates
+- Handles rescheduling and release
 
-### 3.1.2 Bokningshantering
+### Payments
+- Stripe PaymentIntent integration
+- Secure backend validation
+- Linked to bookings
 
-FK-005. En USER ska kunna boka en listing.
+---
 
-FK-006. En USER/HOST ska kunna avboka en listing.
+## New in This Version
 
-FK-007. En USER/HOST ska kunna ändra booking detajer..
+### Booking System Refactoring
+- Cleaner and modular `BookingService`
+- Separation of concerns
+- Easier to maintain and extend
 
+### Price Service
+- Centralized price calculation
+- Includes:
+  - nights
+  - service fee
+  - cleaning fee
+  - total price
 
-## Icke-funktionella krav
+### Validation System
+- Pipeline-based validation
+- Easy to add new rules
+- Includes:
+  - date validation
+  - guest limits
+  - contact validation
 
-### 3.2.1 Säkerhet
+### Mapping (MapStruct)
+- DTO ↔ Entity mapping
+- Removes manual mapping logic
+- Cleaner service layer
 
-IFK-001. Endast autentisierade USERS ska kunna prenumerera på sina egna kanaler.
+###  Email System
+- Dedicated email package
+- Handles:
+  - booking confirmation
+  - cancellation
+  - updates
 
-IFK-002. Endast autentisierade USERS och HOSTS ska kunna ta emot notiser.
+### Notification System (NEW)
+- Real-time notifications using WebSocket
+- STOMP + SockJS
+- Supports:
+  - booking created
+  - booking cancelled
+  - booking updated
+- Template-based notification structure
 
-### 3.2.2 Prestanda
+---
 
-IFK-003. Systemet ska leverera en push-notis inom 5 sekunder när en bokning och avbokning har hänt.
+## Architecture
 
-IFK-004. Systemet ska uppdateras i realtid för online användare.
+- Controller Layer → API endpoints
+- Service Layer → business logic
+- Validation Layer → booking rules
+- Mapper Layer → DTO conversion
+- Repository Layer → database access
 
-### 3.2.3 Lagring
+---
 
-IFK-005. En notifikation ska bevaras i minst 90 dagar i databasen.
+##  Run Project
 
-### 3.2.4 Underhållbarhet
+```bash
+mvn clean install
+mvn spring-boot:run
 
-IFK-006. Notifierings content ska vara modulär och följa Template Method Pattern.
+```
+---
 
-IFK-007. Nya notistyper ska kunna läggas till utan att ändra befintliga klasser.
+## API Documentation: 
+👉 https://documenter.getpostman.com/view/41126830/2sBXqCR4pu
 
-IFK-008. Notifierings väggar ska vara modulära och följa Template Method Pattern.
+---
 
-IFK-009. Nya notisväggar ska kunna läggas till utan att ändra befintliga klasser.
+## My Contribution
+- Refactored booking system into modular architecture (validation, mapper, pricing)
+- Designed validation pipeline for flexible business rules
+- Implemented centralized pricing logic (PriceService)
+- Introduced MapStruct for clean DTO mapping
+- Built email system for booking lifecycle
+- Improved update and cancellation logic
 
+---
 
-
-
-# Prioriteringar & beroenden – Tabell
-
-| **Krav-ID** | **Prioritet** | **Beroenden** |
-|-------------|---------------|---------------|
-| FK-001      | Must have     | FK-004        |
-| FK-002      | Must have     | FK-005        |
-| FK-003      | Must have     | FK-001        |
-| FK-004      | Must have     | -             |
-| FK-005      | Must have     | -             |
-| IFK-001     | Must have     | -             |
-| IFK-002     | Must have     | -             |
-| IFK-003     | Must have     | FK-001        |
-| IFK-004     | Must have     | FK-001        |
-| IFK-005     | Must have     | -             |
-| IFK-006     | Must have     | -             |
-| IFK-007     | Must have     | -             |
-
-
-POSTMAN DOCUMENTATION:
-
-https://documenter.getpostman.com/view/40897736/2sAYk7SjT2
+ℹ️ Notes
+This repository contains only the backend
+Frontend is built separately using React
